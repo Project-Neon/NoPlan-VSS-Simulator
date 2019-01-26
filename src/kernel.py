@@ -13,8 +13,11 @@ from vsscorepy.domain.point import Point
 from vsscorepy.domain.pose import Pose
 from vsscorepy.domain.debug import Debug
 
-HOST = 'localhost'
-PORT = 5777
+HOST_SENDER = 'localhost'
+PORT_SENDER = 5777
+
+HOST_RECEIVER = 'localhost'
+PORT_RECEIVER = 5778
 
 def transform_coordinates(x, y, angle=None, robot_id=None):
     if angle and robot_id:
@@ -35,8 +38,13 @@ def build_for_noplan(state):
 
     return bytes(json.dumps(data), 'utf-8')
 
-udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-dest = (HOST, PORT)
+udp_sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+dest_sender = (HOST_SENDER, PORT_SENDER)
+
+udp_receiver = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+dest_receiver = (HOST_RECEIVER, PORT_RECEIVER)
+
+udp_receiver.bind(dest_receiver)
 
 class Kernel():
     state_receiver = None
@@ -56,13 +64,18 @@ class Kernel():
         while True: 
             state = self.state_receiver.receive_state()
 
-            udp.sendto(build_for_noplan(state), dest)
+            udp_sender.sendto(build_for_noplan(state), dest_sender)
 
             self.command_sender.send_command(self.__build_command())
             # self.debug_sender.send_debug(self.__build_debug(state))
 
     def __build_command(self):
         command = Command()
+        data, addr = udp_receiver.recvfrom(1024)
+
+        commands_obj = json.loads(data.decode('utf-8'))
+        print(commands_obj)
+
 
         command.commands.append(WheelsCommand(10, -10))
         command.commands.append(WheelsCommand(10, -10))
