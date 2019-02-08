@@ -72,10 +72,7 @@ class Kernel():
     def __build_command(self):
         command = Command()
         data, addr = udp_receiver.recvfrom(1024)
-
         commands_obj = json.loads(data.decode('utf-8'))
-        print(commands_obj)
-
 
         command.commands.append(WheelsCommand(10, -10))
         command.commands.append(WheelsCommand(10, -10))
