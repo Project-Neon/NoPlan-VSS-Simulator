@@ -27,6 +27,7 @@ def transform_coordinates(x, y, angle=None, robot_id=None):
 
 def build_for_noplan(state):
     entities_data = {}
+    print(state.team_blue[0].__dict__)
     entities_data['robots_blue'] = [transform_coordinates(bot.x, bot.y, bot.angle, i) for i, bot in enumerate(state.team_blue)]
     entities_data['robots_yellow'] = [transform_coordinates(bot.x, bot.y, bot.angle, i) for i, bot in enumerate(state.team_yellow)]
     entities_data['balls'] = [transform_coordinates(state.ball.x, state.ball.y)]
@@ -64,22 +65,22 @@ class Kernel():
         while True: 
             state = self.state_receiver.receive_state()
 
-            udp_sender.sendto(build_for_noplan(state), dest_sender)
+            state_data = build_for_noplan(state)
 
-            self.command_sender.send_command(self.__build_command())
+            udp_sender.sendto(state_data, dest_sender)
+
+            self.command_sender.send_command(self.__build_command(state_data))
             # self.debug_sender.send_debug(self.__build_debug(state))
 
-    def __build_command(self):
+    def __build_command(self, data_state):
         command = Command()
         data, addr = udp_receiver.recvfrom(1024)
 
         commands_obj = json.loads(data.decode('utf-8'))
-        print(commands_obj)
+        commands_obj.sort(key=lambda x: x[0], reverse=True)
 
-
-        command.commands.append(WheelsCommand(10, -10))
-        command.commands.append(WheelsCommand(10, -10))
-        command.commands.append(WheelsCommand(10, -10))
+        for obj in commands_obj:
+            command.commands.append(WheelsCommand(10, 10))
 
         return command
 
