@@ -47,38 +47,38 @@ class Robot:
 		self.prev_error_theta = 0
 
 	def get_pid_linear_speed(self, desired, _input, ilimit=DEFAULT_PID_INTEGRATION_LIMIT):
-		error_linear = desired - _input
-		self.integ_linear += error_linear * self.DT * ki
+		self.error_linear = desired - _input
+		self.integ_linear += self.error_linear * self.DT * ki
 
 		if self.integ_linear > ilimit:
 			self.integ_linear = ilimit
 		elif self.integ_linear < ilimit:
 			self.integ_linear = ilimit
 
-		derivative = (error_linear - self.prev_error_linear)/self.DT
+		derivative = (self.error_linear - self.prev_error_linear)/self.DT
 
-		speed_linear = self.kp * error_linear + self.kd * derivative + self.integ_linear
+		speed_linear = self.kp * self.error_linear + self.kd * derivative + self.integ_linear
 
-		self.prev_error_linear = error_linear
+		self.prev_error_linear = self.error_linear
 
 		return speed_linear
 
 
 
 	def get_pid_linear_angular(self, desired, _input, ilimit=DEFAULT_PID_INTEGRATION_LIMIT):
-		error_theta = desired - _input
-		self.integ_theta += error_theta * self.DT * ki
+		self.error_theta = desired - _input
+		self.integ_theta += self.error_theta * self.DT * ki
 
 		if self.integ_theta > ilimit:
 			self.integ_theta = ilimit
 		elif self.integ_theta < ilimit:
 			self.integ_theta = ilimit
 
-		derivative = (error_theta - self.prev_error_theta)/self.DT
+		derivative = (self.error_theta - self.prev_error_theta)/self.DT
 
-		speed_theta = self.kp * error_theta + self.kd * derivative + self.integ_theta
+		speed_theta = self.kp * self.error_theta + self.kd * derivative + self.integ_theta
 
-		self.prev_error_theta = error_theta
+		self.prev_error_theta = self.error_theta
 
 		return speed_theta
 

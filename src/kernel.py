@@ -72,25 +72,15 @@ class Kernel():
             self.command_sender.send_command(self.__build_command(state_data))
             # self.debug_sender.send_debug(self.__build_debug(state))
 
-    def __build_command(self, data_state):
+    def __build_command(self, state_data):
         command = Command()
         data, addr = udp_receiver.recvfrom(1024)
 
         commands_obj = json.loads(data.decode('utf-8'))
+        
         commands_obj.sort(key=lambda x: x[0], reverse=True)
 
         for obj in commands_obj:
             command.commands.append(WheelsCommand(10, 10))
 
         return command
-
-
-    def __build_debug(self, state):
-        debug = Debug()
-        debug.clean()
-
-        for robot in state.team_yellow:
-            debug.step_points.append(Point(robot.x + 10, robot.y + 10))
-            debug.final_poses.append(Pose(state.ball.x + 10, state.ball.y + 10, 10))
-
-        return debug
