@@ -75,9 +75,7 @@ class Kernel():
     def __build_command(self, state_data):
         command = Command()
         data, addr = udp_receiver.recvfrom(1024)
-
         commands_obj = json.loads(data.decode('utf-8'))
-        
         commands_obj.sort(key=lambda x: x[0], reverse=True)
 
         for obj in commands_obj:
