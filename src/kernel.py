@@ -12,6 +12,8 @@ from vsscorepy.domain.wheels_command import WheelsCommand
 from vsscorepy.domain.point import Point
 from vsscorepy.domain.pose import Pose
 from vsscorepy.domain.debug import Debug
+from src.pid import Robot
+
 
 HOST_SENDER = 'localhost'
 PORT_SENDER = 5777
@@ -19,18 +21,24 @@ PORT_SENDER = 5777
 HOST_RECEIVER = 'localhost'
 PORT_RECEIVER = 5778
 
-def transform_coordinates(x, y, angle=None, robot_id=None):
-    if angle and robot_id:
-        return {'x':(x - 85)*(150/160)*10, 'y': (y - 65)*10, 'orientation': math.radians(angle), 'robot_id': robot_id}
+def transform_coordinates(element, is_ball=False, robot_id=-1):
+    if not is_ball:
+        return {
+            'x':(element.x - 85)*(150/160)*10,
+            'y': (element.y - 65)*10, 
+            'orientation': math.radians(element.angle),
+            'robot_id': robot_id,
+            'linear_speed': math.sqrt(math.pow(element.speed_x, 2) + math.pow(element.speed_y, 2)),
+            'theta_speed': element.speed_angle
+        }
     else:
-        return {'x':(x - 85)*(150/160)*10, 'y': (y - 65)*10}
+        return {'x':(element.x - 85)*(150/160)*10, 'y': (element.y - 65)*10}
 
 def build_for_noplan(state):
     entities_data = {}
-    print(state.team_blue[0].__dict__)
-    entities_data['robots_blue'] = [transform_coordinates(bot.x, bot.y, bot.angle, i) for i, bot in enumerate(state.team_blue)]
-    entities_data['robots_yellow'] = [transform_coordinates(bot.x, bot.y, bot.angle, i) for i, bot in enumerate(state.team_yellow)]
-    entities_data['balls'] = [transform_coordinates(state.ball.x, state.ball.y)]
+    entities_data['robots_blue'] = [transform_coordinates(bot, robot_id=i) for i, bot in enumerate(state.team_blue)]
+    entities_data['robots_yellow'] = [transform_coordinates(bot, robot_id=i) for i, bot in enumerate(state.team_yellow)]
+    entities_data['balls'] = [transform_coordinates(state.ball, is_ball=True)]
 
     data = {
         'detection': entities_data,
@@ -51,6 +59,8 @@ class Kernel():
     state_receiver = None
     command_sender = None
     debug_sender = None
+
+    robots_pid = [Robot() for _ in range(3)]
 
     def loop(self):
         self.state_receiver = StateReceiver()
@@ -76,9 +86,12 @@ class Kernel():
         command = Command()
         data, addr = udp_receiver.recvfrom(1024)
         commands_obj = json.loads(data.decode('utf-8'))
-        commands_obj.sort(key=lambda x: x[0], reverse=True)
+        commands_obj.sort(key=lambda x: x[0], reverse=False)
 
-        for obj in commands_obj:
-            command.commands.append(WheelsCommand(10, 10))
+        for obj, r_pid in zip(commands_obj, self.robots_pid):
+            r_pid.update(1,1)
+            wheel_right, wheel_left = r_pid.speed_to_power(obj[2], obj[3])
+            print(wheel_right, wheel_left)
+            command.commands.append(WheelsCommand(wheel_right, wheel_left))
 
         return command

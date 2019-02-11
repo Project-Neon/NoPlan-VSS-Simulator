@@ -4,9 +4,9 @@ class Robot:
 	def __init__(self):
 		self.DT = 0.1
 
-		self.kp = 0
-		self.ki = 0
-		self.kd = 0
+		self.kp = 1
+		self.ki = 1
+		self.kd = 1
 
 		# velocidade linear objetivo
 		self.rate_linear = 0
@@ -22,17 +22,22 @@ class Robot:
 		self.last_theta = 0
 		self.last_linear = 0
 
+		self.integ_theta = 0
+		self.integ_linear = 0
+
+		self.power_left = 0
+		self.power_right = 0
+
 		
 
-	def update(self, target_y, target_theta, actual_y, actual_theta):
-		self.rate_theta = (actual_theta - last_theta)
-		self.rate_linear = (actual_linear - last_linear)
+	def update(self, actual_linear, actual_theta):
+		self.rate_theta = (actual_theta - self.last_theta)
+		self.rate_linear = (actual_linear - self.last_linear)
 
 		if (self.rate_theta > 180.0):
 			self.rate_theta -= 360.0
 		elif (self.rate_theta < -180.0):
-
-		self.rate_theta += 360.0f
+			self.rate_theta += 360.0
 
 		self.rate_theta = self.rate_theta / self.DT #dt
 
@@ -48,7 +53,7 @@ class Robot:
 
 	def get_pid_linear_speed(self, desired, _input, ilimit=DEFAULT_PID_INTEGRATION_LIMIT):
 		self.error_linear = desired - _input
-		self.integ_linear += self.error_linear * self.DT * ki
+		self.integ_linear += self.error_linear * self.DT * self.ki
 
 		if self.integ_linear > ilimit:
 			self.integ_linear = ilimit
@@ -82,7 +87,7 @@ class Robot:
 
 		return speed_theta
 
-	def speed_to_power(target_y, target_theta):
+	def speed_to_power(self, target_y, target_theta):
 		speed_y = self.get_pid_linear_speed(target_y, self.rate_linear)
 		speed_theta = self.get_pid_linear_speed(target_theta, self.rate_theta)
 
