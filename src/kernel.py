@@ -3,6 +3,7 @@ import vsscorepy
 import socket
 import json
 import math
+import time
 
 from vsscorepy.communications.command_sender import CommandSender
 from vsscorepy.communications.debug_sender import DebugSender
@@ -45,7 +46,7 @@ def build_for_noplan(state):
         'geometry': {}
     }
 
-    return bytes(json.dumps(data), 'utf-8')
+    return data
 
 udp_sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 dest_sender = (HOST_SENDER, PORT_SENDER)
@@ -63,6 +64,7 @@ class Kernel():
     robots_pid = [Robot() for _ in range(3)]
 
     def loop(self):
+        self.count = 0
         self.state_receiver = StateReceiver()
         self.state_receiver.create_socket()
 
@@ -72,26 +74,34 @@ class Kernel():
         self.debug_sender = DebugSender()
         self.debug_sender.create_socket()
 
-        while True: 
+        while True:
             state = self.state_receiver.receive_state()
 
             state_data = build_for_noplan(state)
 
-            udp_sender.sendto(state_data, dest_sender)
+            udp_sender.sendto(bytes(json.dumps(state_data), 'utf-8'), dest_sender)
 
             self.command_sender.send_command(self.__build_command(state_data))
             # self.debug_sender.send_debug(self.__build_debug(state))
 
     def __build_command(self, state_data):
         command = Command()
+        command.clean() 
+        self.count += 1
         data, addr = udp_receiver.recvfrom(1024)
         commands_obj = json.loads(data.decode('utf-8'))
         commands_obj.sort(key=lambda x: x[0], reverse=False)
 
         for obj, r_pid in zip(commands_obj, self.robots_pid):
-            r_pid.update(1,1)
-            wheel_right, wheel_left = r_pid.speed_to_power(obj[2], obj[3])
-            print(wheel_right, wheel_left)
-            command.commands.append(WheelsCommand(wheel_right, wheel_left))
+            print('robot message: ', obj)
+            sp_lin = state_data['detection']['robots_yellow'][obj[0]]['linear_speed']
+            sp_ang = state_data['detection']['robots_yellow'][obj[0]]['theta_speed']
+            r_pid.set_target(obj[2], obj[3])
+            wheel_right, wheel_left = r_pid.speed_to_power(sp_lin, sp_ang)
+            lin = wheel_right
+            ang = wheel_left
+            print('robot {}:'.format(obj[0]), lin, ang)
+
+            command.commands.append(WheelsCommand(lin, ang))
 
         return command
