@@ -87,21 +87,34 @@ class Kernel():
     def __build_command(self, state_data):
         command = Command()
         command.clean() 
-        self.count += 1
         data, addr = udp_receiver.recvfrom(1024)
         commands_obj = json.loads(data.decode('utf-8'))
         commands_obj.sort(key=lambda x: x[0], reverse=False)
-
-        for obj, r_pid in zip(commands_obj, self.robots_pid):
-            print('robot message: ', obj)
+        last_angles = [0, 0, 0]
+        for obj, r_pid in zip(commands_obj, self.robots_pid):            
             sp_lin = state_data['detection']['robots_yellow'][obj[0]]['linear_speed']
-            sp_ang = state_data['detection']['robots_yellow'][obj[0]]['theta_speed']
-            r_pid.set_target(obj[2], obj[3])
+            ang = math.degrees(
+                state_data['detection']['robots_yellow'][obj[0]]['orientation']
+            )
+
+            delta_angle = (ang - last_angles[obj[0]])
+
+            if delta_angle > 180:
+                delta_angle -= 360
+            elif delta_angle < -180:    
+                delta_angle += 360
+
+            print('delta_angle {}: '.format(delta_angle))
+
+            last_angles[obj[0]] = ang
+            sp_ang = delta_angle/r_pid.dt
+
+            r_pid.set_target(0, 5)
             wheel_right, wheel_left = r_pid.speed_to_power(sp_lin, sp_ang)
             lin = wheel_right
             ang = wheel_left
-            print('robot {}:'.format(obj[0]), lin, ang)
+            print('robot speed {}:'.format(obj[0]), sp_lin, sp_ang)
 
-            command.commands.append(WheelsCommand(lin, ang))
+            command.commands.append(WheelsCommand(10, -10))
 
         return command

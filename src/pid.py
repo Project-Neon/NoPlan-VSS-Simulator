@@ -37,10 +37,9 @@ class Robot:
 	DEFAULT_PID_INTEGRATION_LIMIT = 0
 
 	def __init__(self):
-		self.dt = 0.1
-
-		self.pid_l = {'kp': 0.01,'ki': 0,'kd': 0}
-		self.pid_a = {'kp': 0.01,'ki': 0,'kd': 0}
+		self.dt = 1
+		self.pid_l = {'kp': 1,'ki': 0,'kd': 0}
+		self.pid_a = {'kp': 0.00001,'ki': 0,'kd': 0}
 
 		self.pid_lin = Pid(*self.pid_l.values())
 		self.pid_ang = Pid(*self.pid_a.values())
