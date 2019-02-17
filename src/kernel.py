@@ -61,7 +61,7 @@ class Kernel():
     command_sender = None
     debug_sender = None
 
-    robots_pid = [Robot() for _ in range(3)]
+    robots_pid = [Robot(i) for i in range(3)]
 
     def loop(self):
         self.count = 0
@@ -95,7 +95,7 @@ class Kernel():
             sp_lin = state_data['detection']['robots_yellow'][obj[0]]['linear_speed']
             ang = math.degrees(
                 state_data['detection']['robots_yellow'][obj[0]]['orientation']
-            )
+            ) 
 
             delta_angle = (ang - last_angles[obj[0]])
 
@@ -109,12 +109,12 @@ class Kernel():
             last_angles[obj[0]] = ang
             sp_ang = delta_angle/r_pid.dt
 
-            r_pid.set_target(0, 5)
+            r_pid.set_target(10, 90)
             wheel_right, wheel_left = r_pid.speed_to_power(sp_lin, sp_ang)
             lin = wheel_right
             ang = wheel_left
-            print('robot speed {}:'.format(obj[0]), sp_lin, sp_ang)
+            print('wheels_power: ', wheel_right, wheel_left)
 
-            command.commands.append(WheelsCommand(10, -10))
+            command.commands.append(WheelsCommand(wheel_right, wheel_left))
 
         return command

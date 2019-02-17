@@ -36,10 +36,12 @@ class Pid:
 class Robot:
 	DEFAULT_PID_INTEGRATION_LIMIT = 0
 
-	def __init__(self):
+	def __init__(self, robot_id):
 		self.dt = 1
 		self.pid_l = {'kp': 1,'ki': 0,'kd': 0}
-		self.pid_a = {'kp': 0.00001,'ki': 0,'kd': 0}
+		self.pid_a = {'kp': 1.25,'ki': 0.0015,'kd': 0}
+
+		self.robot_id = robot_id
 
 		self.pid_lin = Pid(*self.pid_l.values())
 		self.pid_ang = Pid(*self.pid_a.values())
@@ -56,12 +58,13 @@ class Robot:
 	def speed_to_power(self, actual_y, actual_theta):
 		speed_y = self.pid_lin.update(actual_y, self.dt)
 		speed_theta = self.pid_ang.update(actual_theta, self.dt)
+		print('INTERNAL SPEEDS ROBOT {}: y:{}, theta:{}'.format(self.robot_id, speed_y, speed_theta))
 
 		acc_left = speed_y + speed_theta
 		acc_right = speed_y - speed_theta
 
-		self.power_left += acc_left * self.dt
-		self.power_right += acc_right * self.dt
+		self.power_left = acc_left * self.dt
+		self.power_right = acc_right * self.dt
 
 		self.power_left = min(100, max(-100, self.power_left))
 		self.power_right = min(100, max(-100, self.power_right))
