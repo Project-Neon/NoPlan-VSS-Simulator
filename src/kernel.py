@@ -61,15 +61,18 @@ class Kernel():
     command_sender = None
     debug_sender = None
 
-    robots_pid = [Robot(i) for i in range(3)]
+    robots_pid = [Robot(i) for i in range(6)]
 
     def loop(self):
         self.count = 0
         self.state_receiver = StateReceiver()
         self.state_receiver.create_socket()
 
-        self.command_sender = CommandSender()
-        self.command_sender.create_socket()
+        self.command_sender_yellow = CommandSender()
+        self.command_sender_yellow.create_socket(port=5556)
+
+        self.command_sender_blue = CommandSender()
+        self.command_sender_blue.create_socket(port=5557)
 
         self.debug_sender = DebugSender()
         self.debug_sender.create_socket()
@@ -81,21 +84,28 @@ class Kernel():
 
             udp_sender.sendto(bytes(json.dumps(state_data), 'utf-8'), dest_sender)
 
-            self.command_sender.send_command(self.__build_command(state_data))
+            data, addr = udp_receiver.recvfrom(1024)
+
+            self.command_sender_yellow.send_command(self.__build_command(data, state_data, 'yellow'))
+            self.command_sender_blue.send_command(self.__build_command(data, state_data, 'blue'))
             # self.debug_sender.send_debug(self.__build_debug(state))
 
-    def __build_command(self, state_data):
+    def __build_command(self, data, state_data, team_color):
         command = Command()
         command.clean() 
-        data, addr = udp_receiver.recvfrom(1024)
         commands_obj = json.loads(data.decode('utf-8'))
         commands_obj.sort(key=lambda x: x[0], reverse=False)
-        last_angles = [0, 0, 0]
-        for obj, r_pid in zip(commands_obj, self.robots_pid):            
-            sp_lin = state_data['detection']['robots_yellow'][obj[0]]['linear_speed']
+        last_angles = [0, 0, 0, 0, 0, 0]
+        allowed_ids = [0,1,2] if team_color == 'yellow' else [3,4,5]
+        for obj, r_pid in zip(commands_obj, self.robots_pid):
+            # print(state_data)
+            if (obj[0] not in allowed_ids):          
+                continue
+
+            sp_lin = state_data['detection']['robots_{}'.format(team_color)][obj[0]%3]['linear_speed']
             ang = math.degrees(
-                state_data['detection']['robots_yellow'][obj[0]]['orientation']
-            ) 
+                state_data['detection']['robots_{}'.format(team_color)][obj[0]%3]['orientation']
+            )
 
             delta_angle = (ang - last_angles[obj[0]])
 
@@ -104,16 +114,15 @@ class Kernel():
             elif delta_angle < -180:    
                 delta_angle += 360
 
-            print('delta_angle {}: '.format(delta_angle))
-
             last_angles[obj[0]] = ang
+            print(obj)
             sp_ang = delta_angle/r_pid.dt
 
-            r_pid.set_target(10, 90)
+            r_pid.set_target(obj[2], obj[3])
             wheel_right, wheel_left = r_pid.speed_to_power(sp_lin, sp_ang)
             lin = wheel_right
             ang = wheel_left
-            print('wheels_power: ', wheel_right, wheel_left)
+            # print('wheels_power: ', wheel_right, wheel_left)
 
             command.commands.append(WheelsCommand(wheel_right, wheel_left))
 

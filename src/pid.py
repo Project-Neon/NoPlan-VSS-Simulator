@@ -58,8 +58,6 @@ class Robot:
 	def speed_to_power(self, actual_y, actual_theta):
 		speed_y = self.pid_lin.update(actual_y, self.dt)
 		speed_theta = self.pid_ang.update(actual_theta, self.dt)
-		print('INTERNAL SPEEDS ROBOT {}: y:{}, theta:{}'.format(self.robot_id, speed_y, speed_theta))
-
 		acc_left = speed_y + speed_theta
 		acc_right = speed_y - speed_theta
 
