@@ -63,6 +63,9 @@ class Kernel():
 
     robots_pid = [Robot(i) for i in range(6)]
 
+    def __init__(self, two_teams):
+        self.two_teams = two_teams
+
     def loop(self):
         self.count = 0
         self.state_receiver = StateReceiver()
@@ -87,7 +90,8 @@ class Kernel():
             data, addr = udp_receiver.recvfrom(1024)
 
             self.command_sender_yellow.send_command(self.__build_command(data, state_data, 'yellow'))
-            self.command_sender_blue.send_command(self.__build_command(data, state_data, 'blue'))
+            if self.two_teams:
+                self.command_sender_blue.send_command(self.__build_command(data, state_data, 'blue'))
             # self.debug_sender.send_debug(self.__build_debug(state))
 
     def __build_command(self, data, state_data, team_color):
@@ -97,6 +101,7 @@ class Kernel():
         commands_obj.sort(key=lambda x: x[0], reverse=False)
         last_angles = [0, 0, 0, 0, 0, 0]
         allowed_ids = [0,1,2] if team_color == 'yellow' else [3,4,5]
+        output = []
         for obj, r_pid in zip(commands_obj, self.robots_pid):
             # print(state_data)
             if (obj[0] not in allowed_ids):          
@@ -126,4 +131,11 @@ class Kernel():
 
             command.commands.append(WheelsCommand(wheel_right, wheel_left))
 
+        # Partindo do principio que havera no maximo 3 robos em cada time
+        mock_commands_left = 3 -len(command.commands)
+
+        for i in range(mock_commands_left):
+            command.commands.append(WheelsCommand(0, 0))
+
+        print(len(command.commands))
         return command

@@ -1,7 +1,7 @@
 from src.kernel import Kernel
 
 def main():
-    kernel = Kernel()
+    kernel = Kernel(True)
     kernel.loop()
 
 if __name__ == "__main__":
